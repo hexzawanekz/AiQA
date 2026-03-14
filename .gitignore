@@ -1,0 +1,36 @@
+# ── Secrets & tokens (never commit) ─────────────────────────────────────────
+.env
+.env.local
+*.env.local
+
+# Client configs with store passwords, Shopify tokens
+clients/*.yaml
+!clients/*.yaml.example
+
+# Portal local config (API keys)
+portal/config.local.toml
+portal/.env
+
+# ── Runtime / build artifacts ───────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Queue state & run metadata (may contain passwords in prompts)
+data/
+
+# Reports & screenshots (may contain store info)
+reports/
+screenshots/
+
+# ── IDE / OS ───────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

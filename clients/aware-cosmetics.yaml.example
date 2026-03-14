@@ -1,17 +1,14 @@
-# AiQA Client Config
-store_domain: aware-cosmetics.myshopify.com
-store_password: itsaraphap
+# AiQA Client Config — copy to aware-cosmetics.yaml and fill in your values
+# cp clients/aware-cosmetics.yaml.example clients/aware-cosmetics.yaml
+
+store_domain: your-store.myshopify.com
+store_password: ""
 
 # Shopify Storefront API public access token
-# Get from: Shopify Admin → Apps → Develop Apps → your app → Storefront API
-# TODO: Replace with valid Storefront API token from aware-test.myshopify.com Shopify Admin
 # Get from: Shopify Admin → Apps → Develop Apps → your app → Storefront API
 storefront_access_token: ""
 
 # Shopify Admin API private token (shpat_...)
-# Get from: Shopify Admin → Apps → Develop Apps → your app → Admin API
-# Required scopes: read_products, read_orders, read_customers, read_inventory
-# TODO: Replace with valid Admin API token (shpat_...) from aware-test.myshopify.com
 # Get from: Shopify Admin → Apps → Develop Apps → your app → Admin API
 # Required scopes: read_products, read_orders, read_customers, read_inventory
 admin_api_token: ""
