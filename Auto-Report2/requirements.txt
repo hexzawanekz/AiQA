@@ -1,0 +1,6 @@
+# Auto-Report2 - Python port of Auto-Report
+# Web dashboard for viewing and managing automation test results
+
+flask>=3.0.0
+flask-cors>=4.0.0
+docxtpl>=0.16.0

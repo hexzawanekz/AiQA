@@ -1,0 +1,65 @@
+# config.local.toml for Oracle (or any server) — NO SECRETS IN THIS FILE
+#
+# Copy to config.local.toml on the server. API keys must be set via environment
+# variables (see api_key_env below). Load env from a secure file, e.g.:
+#   systemd: EnvironmentFile=/opt/agentchattr/secrets.env
+#   secrets.env: chmod 600, owned by app user
+#
+# Optional: require a password to open the chat (only you can access).
+# In secrets.env add: AGENTCHATTR_PASSWORD=your_secret
+# Then uncomment below:
+# [server]
+# auth_password_env = "AGENTCHATTR_PASSWORD"
+#
+# --- Gemini as API agent (Google AI Studio) ---
+# Same model selection as gemini-cli Auto: gemini-2.5-flash (balance) or gemini-2.5-pro (complex tasks).
+# Set GEMINI_API_KEY in secrets.env.
+[agents.gemini]
+type = "api"
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+model = "gemini-2.5-flash"
+color = "#4285f4"
+label = "Gemini"
+api_key_env = "GEMINI_API_KEY"
+
+# --- Kimi as API agent (Z.AI coding, same as Codex) ---
+# Z.AI coding/paas/v4. Set ZAI_API_KEY in secrets.env (same as Codex).
+[agents.kimi]
+type = "api"
+base_url = "https://api.z.ai/api/coding/paas/v4"
+model = "GLM-4.6"
+color = "#1783ff"
+label = "Kimi (Z.AI)"
+api_key_env = "ZAI_API_KEY"
+
+# --- Kilo as API agent (Kilo.ai free plan: MiniMax M2) ---
+# Kilo.ai gateway. Set KILO_API_KEY in secrets.env. Model minimax/minimax-m2:free is free.
+[agents.kilo]
+type = "api"
+base_url = "https://api.kilo.ai/api/gateway"
+model = "minimax/minimax-m2.5:free"
+color = "#8b5cf6"
+label = "Kilo (MiniMax)"
+api_key_env = "KILO_API_KEY"
+
+# --- Qwen as API agent (via Kilo free tier) ---
+# DashScope requires paid activation. Using Kilo kilo-auto/free (same key as Kilo).
+# Set KILO_API_KEY in secrets.env. For DashScope: use base_url + model above + DASHSCOPE_API_KEY.
+[agents.qwen]
+type = "api"
+base_url = "https://api.kilo.ai/api/gateway"
+model = "kilo-auto/free"
+color = "#2593fc"
+label = "Qwen"
+api_key_env = "KILO_API_KEY"
+system_prompt = "You are Qwen, a helpful AI coding assistant in a developer chat room. Focus on code quality, debugging, and best practices. Keep responses concise."
+
+# Example: Z.AI / Codex API agent (key from env only)
+[agents.codex]
+type = "api"
+base_url = "https://api.z.ai/api/coding/paas/v4"
+model = "GLM-4.6"
+color = "#10a37f"
+label = "Codex"
+api_key_env = "ZAI_API_KEY"
+system_prompt = "You are Codex, a coding specialist AI in a developer chat room. Focus on code quality, review, debugging, architecture, and best practices. Write clean, well-commented code. Powered by Z.AI GLM-4.6."

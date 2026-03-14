@@ -1,0 +1,1 @@
+python run.py --client aware-test

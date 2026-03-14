@@ -1,0 +1,19 @@
+[Unit]
+Description=agentchattr Gemini CLI agent
+After=network.target agentchattr.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/agentchattr
+EnvironmentFile=/opt/agentchattr/secrets.env
+Environment=PATH=/opt/agentchattr/.venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=TERM=xterm-256color
+# Write GEMINI_API_KEY to ~/.gemini/.env so CLI skips OAuth; then run wrapper with PTY.
+ExecStart=/opt/agentchattr/gemini-start-with-api-key.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,28 @@
+# AiQA Client Config
+store_domain: aware-test.myshopify.com
+store_password: itsaraphap
+
+# Shopify Storefront API public access token
+# Get from: Shopify Admin → Apps → Develop Apps → your app → Storefront API
+# TODO: Replace with valid Storefront API token from aware-test.myshopify.com Shopify Admin
+# Get from: Shopify Admin → Apps → Develop Apps → your app → Storefront API
+storefront_access_token: ""
+
+# Shopify Admin API private token (shpat_...)
+# Get from: Shopify Admin → Apps → Develop Apps → your app → Admin API
+# Required scopes: read_products, read_orders, read_customers, read_inventory
+# TODO: Replace with valid Admin API token (shpat_...) from aware-test.myshopify.com
+# Get from: Shopify Admin → Apps → Develop Apps → your app → Admin API
+# Required scopes: read_products, read_orders, read_customers, read_inventory
+admin_api_token: ""
+
+# Test cases to run (comment out any you want to skip)
+test_cases:
+  - catalog_search
+  - data_consistency
+  - visual_browse
+  - add_to_cart
+  - checkout_flow
+
+# Optional: Slack webhook URL to send report on completion
+slack_webhook_url: ""
