@@ -11,7 +11,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
-from browser_use import Agent, ActionResult, BrowserSession, Controller
+from browser_use import Agent, ActionResult, Controller
+from browser_use.browser.context import BrowserContext
 from dotenv import load_dotenv
 
 if TYPE_CHECKING:
@@ -994,25 +995,19 @@ def build_agent(
     controller = Controller()
 
     @controller.action("Take a screenshot and save it with the given label")
-    async def take_screenshot(label: str, browser_session: BrowserSession) -> ActionResult:
+    async def take_screenshot(label: str, browser: BrowserContext) -> ActionResult:
         step_counter[0] += 1
         timestamp = datetime.now().strftime("%H%M%S")
         filename = f"{step_counter[0]:02d}-{label.replace(' ', '_')}-{timestamp}.png"
         filepath = screenshots_dir / filename
 
         try:
-            # Use BrowserSession.take_screenshot which accepts a path parameter directly
-            await browser_session.take_screenshot(path=str(filepath), full_page=False)
+            page = await browser.get_agent_current_page()
+            await page.screenshot(path=str(filepath), full_page=False)
         except Exception as e:
             import logging as _logging
-            _logging.getLogger("aiqa").error(f"Screenshot via BrowserSession failed: {type(e).__name__}: {e}")
-            # Fallback: try getting page directly and using playwright screenshot
-            try:
-                page = await browser_session.get_current_page()
-                await page.screenshot(path=str(filepath), full_page=False)
-            except Exception as e2:
-                _logging.getLogger("aiqa").error(f"Screenshot via page failed: {type(e2).__name__}: {e2}")
-                return ActionResult(extracted_content=f"Screenshot failed: {type(e).__name__}: {e}")
+            _logging.getLogger("aiqa").error(f"Screenshot failed: {type(e).__name__}: {e}")
+            return ActionResult(extracted_content=f"Screenshot failed: {type(e).__name__}: {e}")
 
         step_logs.append(StepLog(
             step=step_counter[0],

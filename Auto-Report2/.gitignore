@@ -1,3 +1,6 @@
+# Data (DB, reports, exports)
+data/
+
 # Python
 __pycache__/
 *.py[cod]

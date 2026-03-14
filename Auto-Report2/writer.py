@@ -1,4 +1,4 @@
-"""Write AiQA TestResult to Auto-Report SQLite DB. Use from aiqa.reporter or runner."""
+"""Write AiQA TestResult to Auto-Report2 SQLite DB. Use from aiqa.reporter or runner."""
 
 from __future__ import annotations
 

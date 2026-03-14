@@ -7,9 +7,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Generator
 
-# Default: use reports/database from Auto-Report (shared with Node.js)
+# Auto-Report2 standalone: use own data directory
 _BASE = Path(__file__).resolve().parent
-_REPORTS_BASE = _BASE.parent / "Auto-Report" / "reports"
+_REPORTS_BASE = _BASE / "data"
 DB_PATH = _REPORTS_BASE / "database" / "test-results.db"
 
 

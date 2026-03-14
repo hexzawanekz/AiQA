@@ -1,30 +1,40 @@
 # Auto-Report2
 
-Python port of [Auto-Report](../Auto-Report). A web-based dashboard for viewing and managing automation test results, integrated with the AiQA Python ecosystem.
+Standalone Python web dashboard for viewing and managing automation test results. Integrated with the AiQA Python ecosystem.
+
+**No dependency on Auto-Report (Node.js).** Auto-Report2 is a complete, self-contained fork.
 
 ## Features
 
-- **API-compatible** with Node.js Auto-Report (same REST endpoints, same SQLite schema)
-- **Shared database** with Auto-Report: uses `Auto-Report/reports/database/test-results.db`
-- **Shared frontend**: reuses `Auto-Report/views` and `Auto-Report/assets`
-- **AiQA integration**: `writer.write_results()` to push `TestResult` data into the dashboard DB
+- **Standalone** — All data and frontend bundled in Auto-Report2
+- **API** — REST endpoints for projects, test cases, run history, reports
+- **Dashboard** — Summary stats, run history, run details
+- **AiQA integration** — `writer.write_results()` to push `TestResult` data into the dashboard DB
 
 ## Quick Start
 
 ```bash
-# From AiQA directory
 cd Auto-Report2
 pip install -r requirements.txt
 python run.py
 ```
 
-Or from Auto-Report:
-
-```bash
-npm run report:python
-```
-
 Dashboard: http://localhost:3001
+
+## Project Structure
+
+```
+Auto-Report2/
+├── server.py          # Flask API server
+├── db.py              # SQLite schema and helpers
+├── writer.py          # AiQA TestResult → DB writer
+├── run.py             # Entry point
+├── views/html/        # Dashboard frontend
+│   └── index.html
+├── data/              # DB, reports (gitignored)
+├── requirements.txt
+└── README.md
+```
 
 ## AiQA Integration
 
@@ -47,7 +57,6 @@ print(f"Results written to run_id={run_id}")
 Or integrate in `aiqa.reporter`:
 
 ```python
-# In generate_report() or after run_suite:
 from Auto_Report2 import write_results
 write_results(results, environment=config.name, app="AiQA")
 ```
@@ -55,21 +64,9 @@ write_results(results, environment=config.name, app="AiQA")
 ## Requirements
 
 - Python 3.10+
-- Flask, flask-cors, python-docx-template (for Word export)
-
-## Project Structure
-
-```
-Auto-Report2/
-├── server.py      # Flask API server
-├── db.py          # SQLite schema and helpers
-├── writer.py      # AiQA TestResult → DB writer
-├── run.py         # Entry point
-├── requirements.txt
-└── README.md
-```
+- Flask, flask-cors, docxtpl (for Word export)
 
 ## Environment
 
 - `PORT` — Server port (default: 3001)
-- `AGENTCHATTR_PORT` — For /api/chat-status check (default: 8300)
+- `BROWSER_USE_WEBUI_PORT` — For /api/webui-status check (default: 7788)
