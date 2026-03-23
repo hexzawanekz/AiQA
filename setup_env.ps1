@@ -25,14 +25,14 @@ if (-not $pythonCmd) {
 Write-Host "  Found: $pythonCmd" -ForegroundColor Green
 & $pythonCmd --version
 
-# 2. Check Node.js (optional for Auto-Report)
+# 2. Check Node.js (optional — portal CLI agents only)
 Write-Host ""
 Write-Host "[2/4] Checking Node.js..." -ForegroundColor Yellow
 try {
     $nodeVer = node --version
     Write-Host "  Found: $nodeVer" -ForegroundColor Green
 } catch {
-    Write-Host "  Node.js not found (optional - needed for Auto-Report dashboard)" -ForegroundColor Gray
+    Write-Host "  Node.js not found (optional — only needed for some portal CLI agents)" -ForegroundColor Gray
 }
 
 # 3. Create virtual environment (recommended)
