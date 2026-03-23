@@ -12,7 +12,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 from browser_use import Agent, ActionResult, Controller
-from browser_use.browser.context import BrowserContext
+
+# browser-use 0.12+ removed browser_use.browser.context; use BrowserSession as the page/browser handle.
+try:
+    from browser_use.browser.context import BrowserContext
+except ImportError:
+    from browser_use.browser import BrowserSession as BrowserContext
+
 from dotenv import load_dotenv
 
 if TYPE_CHECKING:
@@ -1002,7 +1008,12 @@ def build_agent(
         filepath = screenshots_dir / filename
 
         try:
-            page = await browser.get_agent_current_page()
+            if hasattr(browser, "get_agent_current_page"):
+                page = await browser.get_agent_current_page()
+            else:
+                page = await browser.get_current_page()
+            if page is None:
+                return ActionResult(extracted_content="Screenshot failed: no active page")
             await page.screenshot(path=str(filepath), full_page=False)
         except Exception as e:
             import logging as _logging
