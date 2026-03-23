@@ -105,11 +105,16 @@ python run.py --client aware-test --suite
 # Run portal (web UI)
 python run_portal.py
 
-# Run Auto-Report2 dashboard
+# Run Auto-Report2 dashboard (projects, test cases, run history, Browser Use hooks)
 cd Auto-Report2
 python run.py
 # → http://localhost:3001
+
+# Browser Use Web UI (Gradio — drive the browser agent; often used with Auto-Report2)
+# Submodule: web-ui/ — see web-ui/README.md (venv + pip/uv inside that folder)
 ```
+
+**Docs:** [docs/POC-PLAN.md](docs/POC-PLAN.md) — sample POC checklist (aware-cosmetics).
 
 ---
 

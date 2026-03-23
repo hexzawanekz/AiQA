@@ -34,3 +34,7 @@ screenshots/
 .DS_Store
 Thumbs.db
 *.log
+
+# Stray empty / scratch dirs (sometimes created by tools by mistake)
+/sc/
+/ss/

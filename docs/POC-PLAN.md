@@ -187,7 +187,7 @@ After completing all 5 test cases, you should have:
 
 ```
 f:\WindowsBackup\shopify\AiQA\
-├── POC-PLAN.md                (this file)
+├── docs\POC-PLAN.md           (this file)
 ├── reports\
 │   └── aware-cosmetics-YYYY-MM-DD.md   (generated report)
 └── screenshots\
