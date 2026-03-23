@@ -6,8 +6,3 @@ httpx>=0.27.0
 pyyaml>=6.0
 python-dotenv>=1.0
 Pillow>=10.0
-
-# Portal (FastAPI web UI + MCP; see portal/)
-fastapi>=0.110
-uvicorn[standard]>=0.29
-mcp>=1.0

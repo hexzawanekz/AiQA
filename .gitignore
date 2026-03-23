@@ -7,10 +7,6 @@
 clients/*.yaml
 !clients/*.yaml.example
 
-# Portal local config (API keys)
-portal/config.local.toml
-portal/.env
-
 # ── Runtime / build artifacts ───────────────────────────────────────────────
 .venv/
 venv/

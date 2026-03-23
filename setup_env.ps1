@@ -25,14 +25,14 @@ if (-not $pythonCmd) {
 Write-Host "  Found: $pythonCmd" -ForegroundColor Green
 & $pythonCmd --version
 
-# 2. Check Node.js (optional — portal CLI agents only)
+# 2. Check Node.js (optional — web-ui submodule / JS tooling)
 Write-Host ""
 Write-Host "[2/4] Checking Node.js..." -ForegroundColor Yellow
 try {
     $nodeVer = node --version
     Write-Host "  Found: $nodeVer" -ForegroundColor Green
 } catch {
-    Write-Host "  Node.js not found (optional — only needed for some portal CLI agents)" -ForegroundColor Gray
+    Write-Host "  Node.js not found (optional)" -ForegroundColor Gray
 }
 
 # 3. Create virtual environment (recommended)
@@ -56,7 +56,6 @@ Write-Host "[4/4] Installing Python packages..." -ForegroundColor Yellow
 & $pip install --upgrade pip -q
 & $pip install -r (Join-Path $ProjectRoot "requirements.txt")
 & $pip install -r (Join-Path $ProjectRoot "Auto-Report2\requirements.txt")
-& $pip install -r (Join-Path $ProjectRoot "portal\requirements.txt")
 Write-Host "  Done." -ForegroundColor Green
 
 Write-Host ""
@@ -67,6 +66,5 @@ Write-Host "  .\.venv\Scripts\Activate.ps1" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Then run:" -ForegroundColor White
 Write-Host "  python run.py --client aware-test --suite" -ForegroundColor Yellow
-Write-Host "  python run_portal.py" -ForegroundColor Yellow
 Write-Host "  cd Auto-Report2; python run.py" -ForegroundColor Yellow
 Write-Host ""

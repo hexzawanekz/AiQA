@@ -4,8 +4,8 @@
 
 | Tool | Version | Required | Notes |
 |------|---------|----------|-------|
-| **Python** | 3.10+ | ✅ Yes | Core runtime for AiQA, Auto-Report2, portal |
-| **Node.js** | 18+ | Optional | Portal CLI agents only (e.g. `@qwen-code/qwen-code`) |
+| **Python** | 3.10+ | ✅ Yes | Core runtime for AiQA and Auto-Report2 |
+| **Node.js** | 18+ | Optional | Only if you work on the `web-ui` submodule or other JS tooling |
 
 ---
 
@@ -38,9 +38,7 @@ py --version
 
 ## 2. Install Node.js (optional)
 
-Node.js is only needed if you use **portal CLI agents** (e.g. `@qwen-code/qwen-code`, `@google/gemini-cli`). The test dashboard is **Auto-Report2** (Python/Flask only).
-
-You already have **Node v24.14.0** and **npm v11.9.0** — no action needed.
+Node.js is **not** required for AiQA CLI runs or **Auto-Report2** (Python only). Install Node only if you need it for the **`web-ui`** submodule or other tooling.
 
 ---
 
@@ -70,9 +68,6 @@ pip install -r requirements.txt
 
 # Auto-Report2 (Flask dashboard)
 pip install -r Auto-Report2\requirements.txt
-
-# Portal (FastAPI)
-pip install -r portal\requirements.txt
 ```
 
 ---
@@ -101,9 +96,6 @@ Edit `.env` with:
 
 # Run QA suite (CLI)
 python run.py --client aware-test --suite
-
-# Run portal (web UI)
-python run_portal.py
 
 # Run Auto-Report2 dashboard (projects, test cases, run history, Browser Use hooks)
 cd Auto-Report2
