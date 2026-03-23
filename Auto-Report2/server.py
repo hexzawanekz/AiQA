@@ -70,6 +70,43 @@ def parse_test_cases_from_md(content: str) -> list[dict]:
     return blocks
 
 
+def build_md_from_test_case_form(tc_id: str, title: str, module: str | None, steps_text: str) -> tuple[str, str]:
+    """
+    Build a single ## TC-XX block + optional #module + bullet steps (goldtraders-style .md).
+    Returns (filename, full_markdown).
+    """
+    raw_id = (tc_id or "").strip().upper()
+    m = re.match(r"^TC-(\d+)$", raw_id)
+    if not m:
+        raise ValueError("TC ID must look like TC-01")
+    tc_norm = f"TC-{int(m.group(1)):02d}"
+    title = (title or "").strip()
+    if not title:
+        raise ValueError("Title is required")
+    if "\n" in title or "\r" in title:
+        raise ValueError("Title must be a single line")
+    lines: list[str] = [f"## {tc_norm}: {title}"]
+    mod = (module or "").strip()
+    if mod:
+        lines.append(f"#module: {mod}")
+    steps = (steps_text or "").replace("\r\n", "\n").replace("\r", "\n")
+    step_lines: list[str] = []
+    for raw in steps.split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        if not re.match(r"^[-*]\s+", line):
+            line = "- " + line
+        step_lines.append(line)
+    if not step_lines:
+        raise ValueError("Add at least one step (one line per step)")
+    lines.extend(step_lines)
+    content = "\n".join(lines) + "\n"
+    slug = re.sub(r"[^\w\-]", "_", title)[:60].strip("_") or "case"
+    filename = f"manual_{tc_norm}_{slug}.md"
+    return filename, content
+
+
 def get_month_name(month: str) -> str:
     months = {
         "01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr", "05": "May", "06": "Jun",
@@ -346,6 +383,49 @@ def api_testcases_upload():
             "parsed_count": len(blocks),
         }), 201
     except Exception as e:
+        return jsonify({"error": "Failed to save test case"}), 500
+
+
+@app.route("/api/testcases/add-one", methods=["POST"])
+def api_testcases_add_one():
+    """Create one test case from JSON (same storage as a single-block .md upload)."""
+    body = request.get_json(silent=True) or {}
+    try:
+        filename, content = build_md_from_test_case_form(
+            body.get("tc_id", ""),
+            body.get("title", ""),
+            body.get("module"),
+            body.get("steps", ""),
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    blocks = parse_test_cases_from_md(content)
+    if not blocks:
+        return jsonify({"error": "Could not parse built test case"}), 400
+    try:
+        size = len(content.encode("utf-8"))
+        uploaded_at = datetime.utcnow().isoformat() + "Z"
+        with get_connection() as conn:
+            init_schema(conn)
+            cur = conn.execute(
+                "INSERT INTO test_case_uploads (filename, file_type, size, content, uploaded_at) VALUES (?, ?, ?, ?, ?)",
+                (filename, ".md", size, content, uploaded_at),
+            )
+            upload_id = cur.lastrowid
+            for b in blocks:
+                conn.execute(
+                    "INSERT INTO test_cases (upload_id, tc_id, title, module, content, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (upload_id, b["tc_id"], b["title"], b["module"] or None, b["content"], b["created_at"]),
+                )
+        return jsonify({
+            "id": upload_id,
+            "filename": filename,
+            "file_type": ".md",
+            "size": size,
+            "uploaded_at": uploaded_at,
+            "parsed_count": len(blocks),
+        }), 201
+    except Exception:
         return jsonify({"error": "Failed to save test case"}), 500
 
 

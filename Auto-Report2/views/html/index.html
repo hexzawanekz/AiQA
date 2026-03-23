@@ -97,7 +97,7 @@
     <a href="#report" class="nav-item" data-page="report">Generate Report</a>
     <a href="#testcases" class="nav-item" data-page="testcases">Test Cases</a>
     <a href="#projects" class="nav-item" data-page="projects">Projects</a>
-    <div class="sidebar-title" style="margin-top:16px;font-size:11px;color:var(--muted)">Browser Use Web UI</div>
+    <div class="sidebar-title" style="margin-top:16px;font-size:11px;color:var(--muted)">Settings</div>
     <a href="#webui-agent" class="nav-item" data-page="webui-agent">⚙️ Agent Settings</a>
     <a href="#webui-browser" class="nav-item" data-page="webui-browser">🌐 Browser Settings</a>
   </aside>
@@ -178,7 +178,39 @@
     <!-- Test Cases -->
     <div id="view-testcases" class="view">
       <h1 class="page-title">Test Cases</h1>
-      <p class="help-text">Upload .md files with ## TC-XX: Title format. Parsed test cases are stored for projects.</p>
+      <p class="help-text">Add cases one by one below, or upload a .md file with <code>## TC-XX: Title</code>, optional <code>#module:</code>, and bullet steps (see <code>test_plans/goldtraders-poc.md</code>).</p>
+      <div class="card">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <span>Add test case</span>
+          <button type="button" class="btn btn-outline" id="btn-add-tc-clear" style="font-size:13px">Clear form</button>
+        </div>
+        <div class="card-body">
+          <form id="form-add-one-tc">
+            <div class="form-row">
+              <label>TC ID *</label>
+              <input type="text" id="add-tc-id" required placeholder="TC-01" autocomplete="off">
+              <span class="help-text" style="display:block;margin-top:4px">Format: TC-01, TC-02, …</span>
+            </div>
+            <div class="form-row">
+              <label>Title *</label>
+              <input type="text" id="add-tc-title" required placeholder="e.g. Homepage Loads Correctly" autocomplete="off">
+            </div>
+            <div class="form-row">
+              <label>Module</label>
+              <input type="text" id="add-tc-module" placeholder="e.g. Homepage" autocomplete="off">
+              <span class="help-text" style="display:block;margin-top:4px">Optional; becomes <code>#module: …</code> in the saved file.</span>
+            </div>
+            <div class="form-row">
+              <label>Steps *</label>
+              <textarea id="add-tc-steps" required rows="10" placeholder="One step per line (dashes optional). Example:&#10;Navigate to https://example.com/&#10;Wait for the page to fully load&#10;Verify: page title contains &quot;Example&quot;&#10;Screenshot: homepage"></textarea>
+              <span class="help-text" style="display:block;margin-top:4px">Lines become markdown bullets (<code>- …</code>). Use <code>Verify:</code> and <code>Screenshot:</code> like in your plans.</span>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn" id="btn-add-one-tc">+ Add test case</button>
+            </div>
+          </form>
+        </div>
+      </div>
       <div class="card">
         <div class="card-header">Upload .md file</div>
         <div class="card-body" style="padding:20px">
@@ -419,7 +451,7 @@
 
     <!-- Run Agent (project test cases, queue, realtime) -->
     <div id="view-webui-run" class="view">
-      <h1 class="page-title">🤖 Run Agent</h1>
+      <h1 class="page-title">Run Agent</h1>
       <p class="help-text">Run the selected project's test cases one by one. Uses Agent Settings and Browser Settings.</p>
       <div class="card">
         <div class="card-body">
@@ -1015,6 +1047,37 @@
         alert('Upload failed: ' + e.message);
       }
     }
+
+    document.getElementById('form-add-one-tc')?.addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('btn-add-one-tc');
+      const body = {
+        tc_id: document.getElementById('add-tc-id').value.trim(),
+        title: document.getElementById('add-tc-title').value.trim(),
+        module: document.getElementById('add-tc-module').value.trim(),
+        steps: document.getElementById('add-tc-steps').value,
+      };
+      btn.disabled = true;
+      try {
+        const res = await fetch(API + '/api/testcases/add-one', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        alert('Saved as upload #' + data.id + ' (' + (data.parsed_count || 1) + ' case).');
+        document.getElementById('form-add-one-tc').reset();
+        loadTestCases();
+      } catch (err) {
+        alert('Add failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    document.getElementById('btn-add-tc-clear')?.addEventListener('click', () => {
+      document.getElementById('form-add-one-tc')?.reset();
+    });
 
     async function showParsedModal(tid, name) {
       document.getElementById('modal-parsed-title').textContent = 'Parsed: ' + (name || '');
