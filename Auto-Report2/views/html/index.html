@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auto-Report2 — Test Results Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1117; --bg2: #161b22; --card: #21262d; --border: #30363d;
+      --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+      --pass: #3fb950; --fail: #f85149; --skip: #d29922;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+    .sidebar {
+      width: 220px; min-height: 100vh; background: var(--bg2); border-right: 1px solid var(--border);
+      padding: 20px 0; flex-shrink: 0;
+    }
+    .sidebar-title { padding: 0 20px 16px; font-weight: 700; font-size: 16px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+    .nav-item {
+      display: block; padding: 10px 20px; color: var(--muted); text-decoration: none; font-size: 14px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .nav-item.active { background: rgba(88,166,255,0.12); color: var(--accent); }
+    .main { flex: 1; overflow-y: auto; padding: 24px; }
+    .page-title { font-size: 22px; margin-bottom: 24px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .stat.pass { border-left: 4px solid var(--pass); }
+    .stat.fail { border-left: 4px solid var(--fail); }
+    .stat.skip { border-left: 4px solid var(--skip); }
+    .stat.total { border-left: 4px solid var(--accent); }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .stat-value { font-size: 24px; font-weight: 700; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 24px; overflow: hidden; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .card-body { padding: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 500; }
+    tr:hover { background: rgba(255,255,255,0.03); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .badge.pass { background: rgba(63,185,80,0.2); color: var(--pass); }
+    .badge.fail { background: rgba(248,81,73,0.2); color: var(--fail); }
+    .badge.skip { background: rgba(210,153,34,0.2); color: var(--skip); }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .btn { display: inline-block; padding: 8px 16px; background: var(--accent); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { opacity: 0.9; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--border); }
+    .btn-danger { background: var(--fail); }
+    .pagination { display: flex; gap: 8px; align-items: center; padding: 16px 20px; border-top: 1px solid var(--border); }
+    .pagination button { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .pagination button:hover:not(:disabled) { background: var(--border); }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .empty { padding: 40px; text-align: center; color: var(--muted); }
+    .loading { text-align: center; padding: 40px; color: var(--muted); }
+    .view { display: none; }
+    .view.active { display: block; }
+    .case-row { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .case-row:last-child { border-bottom: none; }
+    .form-row { margin-bottom: 16px; }
+    .form-row label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .form-row input, .form-row select, .form-row textarea { width: 100%; max-width: 400px; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; }
+    .form-row textarea { min-height: 60px; resize: vertical; }
+    .form-row select[multiple] { min-height: 100px; max-width: 400px; }
+    .form-actions { margin-top: 20px; display: flex; gap: 12px; }
+    .upload-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 40px; text-align: center; color: var(--muted); margin-bottom: 16px; }
+    .upload-zone.dragover { border-color: var(--accent); background: rgba(88,166,255,0.05); }
+    .back-link { display: inline-block; margin-bottom: 16px; color: var(--muted); }
+    .back-link:hover { color: var(--accent); }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+    .modal.active { display: flex; }
+    .modal-content { background: var(--card); border: 1px solid var(--border); border-radius: 8px; max-width: 600px; width: 100%; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+    .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; }
+    .case-detail { padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; }
+    .case-detail .error { color: var(--fail); font-size: 13px; margin-top: 6px; }
+    .case-detail .meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .search-row { margin-bottom: 16px; display: flex; gap: 12px; align-items: center; }
+    .search-row input { flex: 1; max-width: 300px; }
+    .help-text { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    @media (max-width: 600px) { .detail-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-title">Auto-Report2</div>
+    <a href="#dashboard" class="nav-item active" data-page="dashboard">Dashboard</a>
+    <a href="#history" class="nav-item" data-page="history">History</a>
+    <a href="#report" class="nav-item" data-page="report">Generate Report</a>
+    <a href="#testcases" class="nav-item" data-page="testcases">Test Cases</a>
+    <a href="#projects" class="nav-item" data-page="projects">Projects</a>
+    <div class="sidebar-title" style="margin-top:16px;font-size:11px;color:var(--muted)">Browser Use Web UI</div>
+    <a href="#webui-agent" class="nav-item" data-page="webui-agent">⚙️ Agent Settings</a>
+    <a href="#webui-browser" class="nav-item" data-page="webui-browser">🌐 Browser Settings</a>
+    <a href="#webui-run" class="nav-item" data-page="webui-run">🤖 Run Agent</a>
+    <a href="#webui-config" class="nav-item" data-page="webui-config">📁 Load & Save Config</a>
+  </aside>
+
+  <main class="main">
+    <!-- Dashboard -->
+    <div id="view-dashboard" class="view active">
+      <h1 class="page-title">Dashboard</h1>
+      <p class="help-text">Overview of test results across all runs.</p>
+      <div class="stats">
+        <div class="stat total"><div class="stat-label">Total</div><div class="stat-value" id="stat-total">—</div></div>
+        <div class="stat pass"><div class="stat-label">Passed</div><div class="stat-value" id="stat-passed">—</div></div>
+        <div class="stat fail"><div class="stat-label">Failed</div><div class="stat-value" id="stat-failed">—</div></div>
+        <div class="stat skip"><div class="stat-label">Skipped</div><div class="stat-value" id="stat-skipped">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Last Run</div>
+        <div id="dashboard-last-run" class="card-body"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Recent Runs</div>
+        <div id="dashboard-history" class="card-body"></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div id="view-history" class="view">
+      <h1 class="page-title">Run History</h1>
+      <p class="help-text">All test runs. Search by run ID or environment.</p>
+      <div class="card">
+        <div class="card-body">
+          <div class="search-row">
+            <input type="text" id="history-search" placeholder="Search run ID or environment...">
+            <select id="history-field">
+              <option value="run_id">Run ID</option>
+              <option value="environment">Environment</option>
+            </select>
+            <button class="btn" id="btn-history-search">Search</button>
+          </div>
+        </div>
+        <div id="history-body" class="card-body"><div class="loading">Loading…</div></div>
+        <div id="pagination" class="pagination" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Report -->
+    <div id="view-report" class="view">
+      <h1 class="page-title">Generate Report</h1>
+      <p class="help-text">Filter runs by date range or run ID. View as JSON or download as Word document.</p>
+      <div class="card">
+        <div class="card-header">Filters</div>
+        <div class="card-body">
+          <div class="form-row">
+            <label>Start Date</label>
+            <input type="date" id="report-start">
+          </div>
+          <div class="form-row">
+            <label>End Date</label>
+            <input type="date" id="report-end">
+          </div>
+          <div class="form-row">
+            <label>Start Run ID</label>
+            <input type="number" id="report-start-id" placeholder="Optional">
+          </div>
+          <div class="form-row">
+            <label>End Run ID</label>
+            <input type="number" id="report-end-id" placeholder="Optional">
+          </div>
+          <div class="form-actions">
+            <button class="btn" id="btn-generate-json">View JSON</button>
+            <button class="btn btn-outline" id="btn-generate-docx">Download Word</button>
+          </div>
+        </div>
+        <div id="report-result" style="padding:20px;display:none"></div>
+      </div>
+    </div>
+
+    <!-- Test Cases -->
+    <div id="view-testcases" class="view">
+      <h1 class="page-title">Test Cases</h1>
+      <p class="help-text">Upload .md files with ## TC-XX: Title format. Parsed test cases are stored for projects.</p>
+      <div class="card">
+        <div class="card-header">Upload .md file</div>
+        <div class="card-body" style="padding:20px">
+          <div class="upload-zone" id="upload-zone">
+            <p>Drag & drop a .md file here, or <label style="color:var(--accent);cursor:pointer">browse</label></p>
+            <input type="file" id="file-input" accept=".md" style="display:none">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">Uploaded Files</div>
+        <div id="testcases-body" class="card-body"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- Modal: Test case parsed -->
+    <div id="modal-parsed" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span id="modal-parsed-title">Parsed Test Cases</span>
+          <button class="modal-close" id="modal-parsed-close">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-parsed-body"></div>
+      </div>
+    </div>
+
+    <!-- Projects -->
+    <div id="view-projects" class="view">
+      <h1 class="page-title">Projects</h1>
+      <p class="help-text">Projects group test cases for execution. Assign test case uploads to projects.</p>
+      <div class="card">
+        <div class="card-header">New Project</div>
+        <div class="card-body">
+          <form id="project-form">
+            <div class="form-row">
+              <label>Project Name *</label>
+              <input type="text" id="proj-name" required placeholder="e.g. My Store QA">
+            </div>
+            <div class="form-row">
+              <label>Project URL *</label>
+              <input type="url" id="proj-url" required placeholder="https://store.myshopify.com">
+            </div>
+            <div class="form-row">
+              <label>Password (optional)</label>
+              <input type="text" id="proj-password" placeholder="Store password for dev stores">
+            </div>
+            <div class="form-row">
+              <label>Environment (optional)</label>
+              <input type="text" id="proj-environment" placeholder="e.g. staging, prod">
+            </div>
+            <div class="form-row">
+              <label>Story / Notes (optional)</label>
+              <textarea id="proj-story" placeholder="Project description or notes"></textarea>
+            </div>
+            <div class="form-row">
+              <label>Assign Test Cases (optional)</label>
+              <select id="proj-testcases" multiple>
+                <option value="">— Load test cases —</option>
+              </select>
+              <span class="help-text" style="display:block;margin-top:4px">Hold Ctrl/Cmd to select multiple uploads</span>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn">Create Project</button>
+              <button type="reset" class="btn btn-outline">Clear</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">Projects</div>
+        <div id="projects-body" class="card-body"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- Modal: Edit Project -->
+    <div id="modal-project" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span id="modal-project-title">Edit Project</span>
+          <button class="modal-close" id="modal-project-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="project-edit-form">
+            <input type="hidden" id="edit-proj-id">
+            <div class="form-row">
+              <label>Project Name *</label>
+              <input type="text" id="edit-proj-name" required>
+            </div>
+            <div class="form-row">
+              <label>Project URL *</label>
+              <input type="url" id="edit-proj-url" required>
+            </div>
+            <div class="form-row">
+              <label>Password (optional)</label>
+              <input type="text" id="edit-proj-password">
+            </div>
+            <div class="form-row">
+              <label>Environment (optional)</label>
+              <input type="text" id="edit-proj-environment">
+            </div>
+            <div class="form-row">
+              <label>Story / Notes (optional)</label>
+              <textarea id="edit-proj-story"></textarea>
+            </div>
+            <div class="form-row">
+              <label>Assign Test Cases</label>
+              <select id="edit-proj-testcases" multiple></select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent Settings (native) -->
+    <div id="view-webui-agent" class="view">
+      <h1 class="page-title">⚙️ Agent Settings</h1>
+      <p class="help-text">Configure LLM provider, model, and agent parameters.</p>
+      <div class="card">
+        <div class="card-body">
+          <form id="webui-agent-form">
+            <div class="form-row">
+              <label>LLM Provider</label>
+              <select id="agent-llm-provider">
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="google">Google</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="ollama">Ollama</option>
+                <option value="azure_openai">Azure OpenAI</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>LLM Model</label>
+              <input type="text" id="agent-llm-model" placeholder="e.g. gpt-4o, claude-3-5-sonnet">
+            </div>
+            <div class="form-row">
+              <label>Temperature</label>
+              <input type="number" id="agent-temperature" min="0" max="2" step="0.1" value="0.6">
+            </div>
+            <div class="form-row">
+              <label><input type="checkbox" id="agent-use-vision" checked> Use Vision (screenshot input)</label>
+            </div>
+            <div class="form-row">
+              <label>Base URL (optional)</label>
+              <input type="text" id="agent-base-url" placeholder="API endpoint if required">
+            </div>
+            <div class="form-row">
+              <label>API Key (optional, uses .env if blank)</label>
+              <input type="password" id="agent-api-key" placeholder="Leave blank to use env">
+            </div>
+            <div class="form-row">
+              <label>Override System Prompt</label>
+              <textarea id="agent-override-prompt" rows="3" placeholder="Optional"></textarea>
+            </div>
+            <div class="form-row">
+              <label>Extend System Prompt</label>
+              <textarea id="agent-extend-prompt" rows="3" placeholder="Optional"></textarea>
+            </div>
+            <div class="form-row">
+              <label>Max Steps</label>
+              <input type="number" id="agent-max-steps" min="1" max="1000" value="100">
+            </div>
+            <div class="form-row">
+              <label>Max Actions per Step</label>
+              <input type="number" id="agent-max-actions" min="1" max="100" value="10">
+            </div>
+            <div class="form-row">
+              <label>Tool Calling Method</label>
+              <select id="agent-tool-calling">
+                <option value="auto">auto</option>
+                <option value="function_calling">function_calling</option>
+                <option value="json_mode">json_mode</option>
+                <option value="tools">tools</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn">Save Agent Settings</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Browser Settings (native) -->
+    <div id="view-webui-browser" class="view">
+      <h1 class="page-title">🌐 Browser Settings</h1>
+      <p class="help-text">Configure browser path, window size, and recording options.</p>
+      <div class="card">
+        <div class="card-body">
+          <form id="webui-browser-form">
+            <div class="form-row">
+              <label>Browser Binary Path</label>
+              <input type="text" id="browser-path" placeholder="e.g. C:\Program Files\Google\Chrome\Application\chrome.exe">
+            </div>
+            <div class="form-row">
+              <label>Browser User Data Dir</label>
+              <input type="text" id="browser-user-data" placeholder="Leave empty for default">
+            </div>
+            <div class="form-row">
+              <label><input type="checkbox" id="browser-use-own"> Use Own Browser</label>
+            </div>
+            <div class="form-row">
+              <label><input type="checkbox" id="browser-keep-open" checked> Keep Browser Open Between Tasks</label>
+            </div>
+            <div class="form-row">
+              <label><input type="checkbox" id="browser-headless"> Headless Mode</label>
+            </div>
+            <div class="form-row">
+              <label>Window Width</label>
+              <input type="number" id="browser-window-w" value="1280">
+            </div>
+            <div class="form-row">
+              <label>Window Height</label>
+              <input type="number" id="browser-window-h" value="1100">
+            </div>
+            <div class="form-row">
+              <label>Recording Path</label>
+              <input type="text" id="browser-recording-path" placeholder="./tmp/record_videos">
+            </div>
+            <div class="form-row">
+              <label>Agent History Path</label>
+              <input type="text" id="browser-history-path" value="./tmp/agent_history">
+            </div>
+            <div class="form-row">
+              <label>Downloads Path</label>
+              <input type="text" id="browser-downloads-path" value="./tmp/downloads">
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn">Save Browser Settings</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Run Agent (project test cases, queue, realtime) -->
+    <div id="view-webui-run" class="view">
+      <h1 class="page-title">🤖 Run Agent</h1>
+      <p class="help-text">Run the selected project's test cases one by one. Uses Agent Settings and Browser Settings.</p>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-row">
+            <label>Project</label>
+            <select id="webui-run-project">
+              <option value="">— Select project —</option>
+            </select>
+          </div>
+          <div id="webui-run-queue" class="meta" style="margin-bottom:12px"></div>
+          <div class="form-actions">
+            <button type="button" class="btn" id="webui-run-btn">▶️ Run Agent</button>
+            <button type="button" class="btn btn-outline" id="webui-stop-btn" disabled>⏹️ Stop</button>
+          </div>
+          <div id="webui-run-activity" style="margin-top:16px;max-height:400px;overflow-y:auto;font-family:monospace;font-size:13px">
+            <div class="empty">Select a project and click Run. Activity will appear here in real time.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load & Save Config (native) -->
+    <div id="view-webui-config" class="view">
+      <h1 class="page-title">📁 Load & Save Config</h1>
+      <p class="help-text">Save and load your Agent + Browser configuration as JSON.</p>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-row">
+            <label>Load from JSON</label>
+            <div class="upload-zone" id="webui-config-upload-zone" style="padding:24px">
+              <p>Drag & drop a .json config file, or <label style="color:var(--accent);cursor:pointer" id="webui-config-browse">browse</label></p>
+              <input type="file" id="webui-config-file" accept=".json" style="display:none">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn" id="webui-config-save-btn">💾 Save Config (Download)</button>
+          </div>
+          <div id="webui-config-status" class="meta" style="margin-top:12px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail -->
+    <div id="view-detail" class="view">
+      <a href="#" class="back-link" id="back-link">← Back</a>
+      <div class="card">
+        <div class="card-header">
+          <span>Run #<span id="detail-run-id"></span></span>
+          <button class="btn btn-outline btn-danger" id="btn-delete-run">Delete</button>
+        </div>
+        <div id="detail-body" class="card-body"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API = '';
+    let currentPage = 1;
+    let currentRunId = null;
+
+    async function fetchJson(path, opts = {}) {
+      const r = await fetch(API + path, opts);
+      if (!r.ok) throw new Error(r.statusText);
+      return r.json();
+    }
+
+    function showPage(page, param) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const view = document.getElementById('view-' + page);
+      const nav = document.querySelector('.nav-item[data-page="' + page + '"]');
+      if (view) view.classList.add('active');
+      if (nav) nav.classList.add('active');
+      if (page === 'detail' && param) {
+        currentRunId = param;
+        loadDetail(param);
+      } else if (page === 'dashboard') {
+        loadSummary();
+        loadDashboardLastRun();
+        loadDashboardHistory();
+      } else if (page === 'history') loadHistory(1);
+      else if (page === 'report') document.getElementById('report-result').style.display = 'none';
+      else if (page === 'testcases') loadTestCases();
+      else if (page === 'projects') { loadProjects(); loadProjectTestCases(); }
+      else if (page && page.startsWith('webui-')) loadWebuiPage(page);
+    }
+
+    function onHashChange() {
+      const hash = location.hash.slice(1) || 'dashboard';
+      const [page, param] = hash.split('/');
+      showPage(page || 'dashboard', param);
+    }
+
+    window.addEventListener('hashchange', onHashChange);
+
+    async function loadSummary() {
+      try {
+        const s = await fetchJson('/api/summary');
+        const total = (s.passed || 0) + (s.failed || 0) + (s.skipped || 0);
+        document.getElementById('stat-total').textContent = total || '—';
+        document.getElementById('stat-passed').textContent = s.passed ?? '—';
+        document.getElementById('stat-failed').textContent = s.failed ?? '—';
+        document.getElementById('stat-skipped').textContent = s.skipped ?? '—';
+      } catch (e) {
+        ['stat-total','stat-passed','stat-failed','stat-skipped'].forEach(id => document.getElementById(id).textContent = '0');
+      }
+    }
+
+    async function loadDashboardLastRun() {
+      const el = document.getElementById('dashboard-last-run');
+      try {
+        const res = await fetchJson('/api/last-run-summary');
+        if (!res.run_id) {
+          el.innerHTML = '<div class="empty">No runs yet.</div>';
+          return;
+        }
+        el.innerHTML = `
+          <div class="detail-grid">
+            <div><strong>Run ID</strong>: ${res.run_id}</div>
+            <div><strong>Environment</strong>: ${res.environment || '—'}</div>
+            <div><strong>Date</strong>: ${res.date || '—'}</div>
+            <div><strong>Duration</strong>: ${res.duration || '—'}</div>
+          </div>
+          <a href="#detail/${res.run_id}">View details →</a>
+        `;
+      } catch (e) {
+        el.innerHTML = '<div class="empty">No runs yet.</div>';
+      }
+    }
+
+    async function loadDashboardHistory() {
+      const el = document.getElementById('dashboard-history');
+      try {
+        const res = await fetchJson('/api/history?page=1&limit=5');
+        if (!res.data || res.data.length === 0) {
+          el.innerHTML = '<div class="empty">No runs yet.</div>';
+          return;
+        }
+        el.innerHTML = `
+          <table>
+            <thead><tr><th>Run ID</th><th>Environment</th><th>Date</th><th>Duration</th><th>Passed</th><th>Failed</th><th></th></tr></thead>
+            <tbody>
+              ${res.data.map(r => `
+                <tr>
+                  <td>${r.run_id}</td>
+                  <td>${r.environment || '—'}</td>
+                  <td>${r.executedAt || '—'}</td>
+                  <td>${r.executionTime || '—'}</td>
+                  <td>${r.passed ?? 0}</td>
+                  <td>${r.failed ?? 0}</td>
+                  <td><a href="#detail/${r.run_id}">View</a></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (e) {
+        el.innerHTML = '<div class="empty">Failed to load.</div>';
+      }
+    }
+
+    async function loadHistory(page = 1) {
+      const body = document.getElementById('history-body');
+      const search = document.getElementById('history-search')?.value?.trim() || '';
+      const field = document.getElementById('history-field')?.value || 'run_id';
+      body.innerHTML = '<div class="loading">Loading…</div>';
+      try {
+        let url = `/api/history?page=${page}&limit=10`;
+        if (search) url += `&search=${encodeURIComponent(search)}&field=${field}`;
+        const res = await fetchJson(url);
+        if (!res.data || res.data.length === 0) {
+          body.innerHTML = '<div class="empty">No test runs yet.</div>';
+          document.getElementById('pagination').style.display = 'none';
+          return;
+        }
+        body.innerHTML = `
+          <table>
+            <thead><tr><th>Run ID</th><th>Environment</th><th>Date</th><th>Duration</th><th>Passed</th><th>Failed</th><th>Skipped</th><th>App</th><th></th></tr></thead>
+            <tbody>
+              ${res.data.map(r => `
+                <tr>
+                  <td>${r.run_id}</td>
+                  <td>${r.environment || '—'}</td>
+                  <td>${r.executedAt || '—'}</td>
+                  <td>${r.executionTime || '—'}</td>
+                  <td>${r.passed ?? 0}</td>
+                  <td>${r.failed ?? 0}</td>
+                  <td>${r.skipped ?? 0}</td>
+                  <td>${r.app || '—'}</td>
+                  <td>
+                    <a href="#detail/${r.run_id}">View</a>
+                    <span style="margin:0 4px">|</span>
+                    <a href="#" class="btn-delete-run" data-run-id="${r.run_id}" style="color:var(--fail)">Delete</a>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        body.querySelectorAll('.btn-delete-run').forEach(a => {
+          a.addEventListener('click', async e => { e.preventDefault(); if (confirm('Delete run #' + a.dataset.runId + '?')) { await fetch(API + '/api/history/delete/' + a.dataset.runId, { method: 'DELETE' }); loadHistory(page); } });
+        });
+        document.getElementById('pagination').style.display = 'flex';
+        document.getElementById('pagination').innerHTML = `
+          <button id="prev" ${page <= 1 ? 'disabled' : ''}>Previous</button>
+          <span>Page ${page} of ${res.totalPages || 1}</span>
+          <button id="next" ${page >= (res.totalPages || 1) ? 'disabled' : ''}>Next</button>
+        `;
+        document.getElementById('prev')?.addEventListener('click', () => { currentPage = page - 1; loadHistory(currentPage); });
+        document.getElementById('next')?.addEventListener('click', () => { currentPage = page + 1; loadHistory(currentPage); });
+        currentPage = page;
+      } catch (e) {
+        body.innerHTML = '<div class="empty">' + e.message + '</div>';
+        document.getElementById('pagination').style.display = 'none';
+      }
+    }
+
+    async function loadDetail(runId) {
+      document.getElementById('detail-run-id').textContent = runId;
+      const body = document.getElementById('detail-body');
+      body.innerHTML = '<div class="loading">Loading…</div>';
+      try {
+        const res = await fetchJson(`/api/history/detail/${runId}`);
+        let html = '';
+        if (res.summary) {
+          html += `<div class="case-detail" style="margin-bottom:16px">
+            <div class="detail-grid">
+              <div><strong>Environment</strong>: ${res.summary.environment || '—'}</div>
+              <div><strong>App</strong>: ${res.summary.app || '—'}</div>
+              <div><strong>Date</strong>: ${res.summary.executedAt || '—'}</div>
+              <div><strong>Duration</strong>: ${res.summary.executionTime || '—'}</div>
+              <div><strong>Passed</strong>: ${res.summary.passed ?? 0}</div>
+              <div><strong>Failed</strong>: ${res.summary.failed ?? 0}</div>
+              <div><strong>Skipped</strong>: ${res.summary.skipped ?? 0}</div>
+              <div><strong>Total</strong>: ${res.summary.total ?? 0}</div>
+            </div>
+          </div>`;
+        }
+        for (const row of res.rows || []) {
+          for (const c of row.cases || []) {
+            const cls = c.isPassed ? 'pass' : c.isFailed ? 'fail' : 'skip';
+            const name = (c.param && c.param.name) || c.name || c.code || '—';
+            const err = c.error && c.error !== '-' ? `<div class="error">${c.error}</div>` : '';
+            const meta = [c.duration, c.screenshot ? 'Screenshot' : null].filter(Boolean).join(' • ');
+            html += `<div class="case-detail">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span><strong>${name}</strong></span>
+                <span class="badge ${cls}">${c.status || '—'}</span>
+              </div>
+              ${meta ? `<div class="meta">${meta}</div>` : ''}
+              ${err}
+            </div>`;
+          }
+        }
+        body.innerHTML = html || '<div class="empty">No cases.</div>';
+      } catch (e) {
+        body.innerHTML = '<div class="empty">' + e.message + '</div>';
+      }
+    }
+
+    document.getElementById('btn-delete-run').addEventListener('click', async () => {
+      if (!currentRunId || !confirm('Delete this run?')) return;
+      try {
+        await fetch(API + `/api/history/delete/${currentRunId}`, { method: 'DELETE' });
+        location.hash = '#history';
+        loadHistory(currentPage);
+      } catch (e) {
+        alert('Delete failed: ' + e.message);
+      }
+    });
+
+    document.getElementById('back-link').addEventListener('click', e => {
+      e.preventDefault();
+      location.hash = '#history';
+    });
+
+    document.getElementById('btn-history-search')?.addEventListener('click', () => loadHistory(1));
+
+    async function loadWebuiConfig() {
+      try {
+        const c = await fetchJson('/api/webui/config');
+        return c;
+      } catch (e) {
+        return { agent: {}, browser: {} };
+      }
+    }
+
+    function loadWebuiAgent() {
+      loadWebuiConfig().then(c => {
+        const a = c.agent || {};
+        document.getElementById('agent-llm-provider').value = a.llm_provider || 'openai';
+        document.getElementById('agent-llm-model').value = a.llm_model_name || '';
+        document.getElementById('agent-temperature').value = a.llm_temperature ?? 0.6;
+        document.getElementById('agent-use-vision').checked = a.use_vision !== false;
+        document.getElementById('agent-base-url').value = a.llm_base_url || '';
+        document.getElementById('agent-api-key').value = a.llm_api_key || '';
+        document.getElementById('agent-override-prompt').value = a.override_system_prompt || '';
+        document.getElementById('agent-extend-prompt').value = a.extend_system_prompt || '';
+        document.getElementById('agent-max-steps').value = a.max_steps ?? 100;
+        document.getElementById('agent-max-actions').value = a.max_actions ?? 10;
+        document.getElementById('agent-tool-calling').value = a.tool_calling_method || 'auto';
+      });
+    }
+
+    function loadWebuiBrowser() {
+      loadWebuiConfig().then(c => {
+        const b = c.browser || {};
+        document.getElementById('browser-path').value = b.browser_binary_path || '';
+        document.getElementById('browser-user-data').value = b.browser_user_data_dir || '';
+        document.getElementById('browser-use-own').checked = !!b.use_own_browser;
+        document.getElementById('browser-keep-open').checked = b.keep_browser_open !== false;
+        document.getElementById('browser-headless').checked = !!b.headless;
+        document.getElementById('browser-window-w').value = b.window_w ?? 1280;
+        document.getElementById('browser-window-h').value = b.window_h ?? 1100;
+        document.getElementById('browser-recording-path').value = b.save_recording_path || '';
+        document.getElementById('browser-history-path').value = b.save_agent_history_path || './tmp/agent_history';
+        document.getElementById('browser-downloads-path').value = b.save_download_path || './tmp/downloads';
+      });
+    }
+
+    function loadWebuiPage(page) {
+      if (page === 'webui-agent') loadWebuiAgent();
+      else if (page === 'webui-browser') loadWebuiBrowser();
+      else if (page === 'webui-run') loadWebuiRun();
+    }
+
+    async function loadWebuiRun() {
+      const sel = document.getElementById('webui-run-project');
+      if (!sel) return;
+      try {
+        const list = await fetchJson('/api/projects');
+        sel.innerHTML = '<option value="">— Select project —</option>' +
+          (list || []).map(p => `<option value="${p.id}">${p.project_name} (${p.parsed_case_count ?? p.test_case_count ?? 0} cases)</option>`).join('');
+        sel.dispatchEvent(new Event('change'));
+      } catch (e) {
+        sel.innerHTML = '<option value="">Failed to load projects</option>';
+      }
+    }
+
+    document.getElementById('webui-run-project')?.addEventListener('change', async function() {
+      const pid = this.value;
+      const queueEl = document.getElementById('webui-run-queue');
+      if (!pid) {
+        queueEl.textContent = '';
+        return;
+      }
+      try {
+        const proj = await fetchJson('/api/projects/' + pid);
+        const count = proj.parsed_case_count ?? (proj.assigned_test_case_ids || []).length;
+        queueEl.textContent = count ? `${count} test case(s) will run in queue.` : 'No test cases assigned. Assign in Projects page.';
+      } catch (e) {
+        queueEl.textContent = '';
+      }
+    });
+
+    document.getElementById('webui-run-btn')?.addEventListener('click', async function() {
+      const pid = document.getElementById('webui-run-project').value;
+      if (!pid) {
+        alert('Select a project first.');
+        return;
+      }
+      const btn = this;
+      const stopBtn = document.getElementById('webui-stop-btn');
+      const activityEl = document.getElementById('webui-run-activity');
+      btn.disabled = true;
+      stopBtn.disabled = false;
+      activityEl.innerHTML = '<div class="loading">Starting run…</div>';
+      try {
+        const res = await fetch(API + '/api/webui/run/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project_id: parseInt(pid) }),
+        });
+        let data;
+        try {
+          const text = await res.text();
+          data = text ? JSON.parse(text) : {};
+        } catch (parseErr) {
+          activityEl.innerHTML = '<div class="empty" style="color:var(--fail)">Server returned invalid response. Check console.</div>';
+          btn.disabled = false;
+          stopBtn.disabled = true;
+          return;
+        }
+        if (!res.ok) {
+          activityEl.innerHTML = '<div class="empty" style="color:var(--fail)">' + (data.error || res.statusText) + '</div>';
+          btn.disabled = false;
+          stopBtn.disabled = true;
+          return;
+        }
+        const runId = data.run_id;
+        activityEl.innerHTML = '<div class="meta">Connecting to stream…</div>';
+        const es = new EventSource(API + '/api/webui/run/stream/' + runId);
+        const lines = [];
+        function addLine(html) {
+          lines.push(html);
+          activityEl.innerHTML = lines.join('');
+          activityEl.scrollTop = activityEl.scrollHeight;
+        }
+        es.onmessage = function(ev) {
+          try {
+            if (!ev.data || ev.data.trim().startsWith('<')) return;
+            const msg = JSON.parse(ev.data);
+            const e = msg.event, d = msg.data || {};
+            if (e === 'case_start') {
+              addLine(`<div class="case-row" style="padding:8px 0;border-bottom:1px solid var(--border)"><span class="badge pass">▶</span> [${d.index}/${d.total}] Starting ${d.tc_id}: ${d.title}</div>`);
+            } else if (e === 'case_done') {
+              const cls = d.status === 'done' ? 'pass' : 'fail';
+              const extra = d.error ? ` — ${d.error}` : (d.screenshots ? ` (${d.screenshots} screenshots)` : '');
+              addLine(`<div class="case-row" style="padding:8px 0;border-bottom:1px solid var(--border)"><span class="badge ${cls}">${d.status === 'done' ? '✓' : '✗'}</span> ${d.tc_id}: ${d.title}${extra}</div>`);
+            } else if (e === 'run_complete') {
+              const historyLink = d.run_id ? ` <a href="#detail/${d.run_id}" style="margin-left:8px">View in History →</a>` : '';
+              addLine(`<div class="case-row" style="padding:12px 0;font-weight:600"><span class="badge pass">Done</span> Completed ${d.total} case(s).${historyLink}</div>`);
+              es.close();
+              btn.disabled = false;
+              stopBtn.disabled = true;
+            } else if (e === 'error') {
+              addLine(`<div class="case-row" style="padding:8px 0;color:var(--fail)"><span class="badge fail">Error</span> ${d.message || 'Unknown error'}</div>`);
+              es.close();
+              btn.disabled = false;
+              stopBtn.disabled = true;
+            }
+          } catch (parseErr) {
+            if (ev.data && !ev.data.includes('keepalive')) addLine('<div class="meta" style="color:var(--muted)">Received non-JSON data</div>');
+          }
+        };
+        es.onerror = function() {
+          if (btn.disabled) {
+            addLine('<div class="meta" style="color:var(--muted)">Stream ended.</div>');
+            btn.disabled = false;
+            stopBtn.disabled = true;
+          }
+          es.close();
+        };
+      } catch (e) {
+        activityEl.innerHTML = '<div class="empty" style="color:var(--fail)">' + e.message + '</div>';
+        btn.disabled = false;
+        stopBtn.disabled = true;
+      }
+    });
+
+    document.getElementById('webui-stop-btn')?.addEventListener('click', function() {
+      // Stop not yet implemented - would need run_id and cancel flag
+      alert('Stop will be available in a future update.');
+    });
+
+    document.getElementById('webui-agent-form')?.addEventListener('submit', async e => {
+      e.preventDefault();
+      const body = {
+        agent: {
+          llm_provider: document.getElementById('agent-llm-provider').value,
+          llm_model_name: document.getElementById('agent-llm-model').value,
+          llm_temperature: parseFloat(document.getElementById('agent-temperature').value) || 0.6,
+          use_vision: document.getElementById('agent-use-vision').checked,
+          llm_base_url: document.getElementById('agent-base-url').value.trim(),
+          llm_api_key: document.getElementById('agent-api-key').value,
+          override_system_prompt: document.getElementById('agent-override-prompt').value.trim(),
+          extend_system_prompt: document.getElementById('agent-extend-prompt').value.trim(),
+          max_steps: parseInt(document.getElementById('agent-max-steps').value) || 100,
+          max_actions: parseInt(document.getElementById('agent-max-actions').value) || 10,
+          tool_calling_method: document.getElementById('agent-tool-calling').value,
+        },
+      };
+      try {
+        await fetch(API + '/api/webui/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        alert('Agent settings saved.');
+      } catch (err) { alert('Save failed: ' + err.message); }
+    });
+
+    document.getElementById('webui-browser-form')?.addEventListener('submit', async e => {
+      e.preventDefault();
+      const body = {
+        browser: {
+          browser_binary_path: document.getElementById('browser-path').value.trim(),
+          browser_user_data_dir: document.getElementById('browser-user-data').value.trim(),
+          use_own_browser: document.getElementById('browser-use-own').checked,
+          keep_browser_open: document.getElementById('browser-keep-open').checked,
+          headless: document.getElementById('browser-headless').checked,
+          window_w: parseInt(document.getElementById('browser-window-w').value) || 1280,
+          window_h: parseInt(document.getElementById('browser-window-h').value) || 1100,
+          save_recording_path: document.getElementById('browser-recording-path').value.trim(),
+          save_agent_history_path: document.getElementById('browser-history-path').value.trim() || './tmp/agent_history',
+          save_download_path: document.getElementById('browser-downloads-path').value.trim() || './tmp/downloads',
+        },
+      };
+      try {
+        await fetch(API + '/api/webui/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        alert('Browser settings saved.');
+      } catch (err) { alert('Save failed: ' + err.message); }
+    });
+
+    document.getElementById('webui-config-save-btn')?.addEventListener('click', () => {
+      window.location.href = API + '/api/webui/config/save';
+      document.getElementById('webui-config-status').textContent = 'Config downloaded.';
+    });
+
+    document.getElementById('webui-config-browse')?.addEventListener('click', () => document.getElementById('webui-config-file').click());
+    document.getElementById('webui-config-file')?.addEventListener('change', async e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const fd = new FormData();
+      fd.append('file', f);
+      try {
+        const r = await fetch(API + '/api/webui/config/load', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (!r.ok) {
+          document.getElementById('webui-config-status').textContent = 'Load failed: ' + (data.error || r.statusText);
+          return;
+        }
+        document.getElementById('webui-config-status').textContent = 'Config loaded.';
+        loadWebuiAgent();
+        loadWebuiBrowser();
+      } catch (err) {
+        document.getElementById('webui-config-status').textContent = 'Load failed: ' + err.message;
+      }
+      e.target.value = '';
+    });
+    const webuiConfigZone = document.getElementById('webui-config-upload-zone');
+    if (webuiConfigZone) {
+      webuiConfigZone.addEventListener('dragover', e => { e.preventDefault(); webuiConfigZone.classList.add('dragover'); });
+      webuiConfigZone.addEventListener('dragleave', () => webuiConfigZone.classList.remove('dragover'));
+      webuiConfigZone.addEventListener('drop', async e => {
+        e.preventDefault();
+        webuiConfigZone.classList.remove('dragover');
+        const f = e.dataTransfer.files[0];
+        if (f && f.name.endsWith('.json')) {
+          const fd = new FormData();
+          fd.append('file', f);
+          try {
+            const r = await fetch(API + '/api/webui/config/load', { method: 'POST', body: fd });
+            const data = await r.json();
+            if (!r.ok) {
+              document.getElementById('webui-config-status').textContent = 'Load failed: ' + (data.error || r.statusText);
+              return;
+            }
+            document.getElementById('webui-config-status').textContent = 'Config loaded.';
+            loadWebuiAgent();
+            loadWebuiBrowser();
+          } catch (err) {
+            document.getElementById('webui-config-status').textContent = 'Load failed: ' + err.message;
+          }
+        }
+      });
+    }
+
+    document.querySelectorAll('.nav-item').forEach(n => {
+      n.addEventListener('click', e => {
+        if (n.getAttribute('href').startsWith('#')) {
+          e.preventDefault();
+          location.hash = n.getAttribute('href').slice(1);
+        }
+      });
+    });
+
+    // Report
+    document.getElementById('btn-generate-json').addEventListener('click', async () => {
+      const start = document.getElementById('report-start').value;
+      const end = document.getElementById('report-end').value;
+      const startId = document.getElementById('report-start-id').value;
+      const endId = document.getElementById('report-end-id').value;
+      const params = new URLSearchParams();
+      if (start) params.set('startDate', start);
+      if (end) params.set('endDate', end);
+      if (startId) params.set('startId', startId);
+      if (endId) params.set('endId', endId);
+      try {
+        const res = await fetchJson('/api/generate-report?' + params);
+        const el = document.getElementById('report-result');
+        el.style.display = 'block';
+        const s = res.all_summary || {};
+        const summary = `<div class="detail-grid" style="margin-bottom:16px;padding:12px;background:var(--bg);border-radius:6px">
+          <div><strong>Total</strong>: ${s.total ?? 0}</div>
+          <div><strong>Passed</strong>: ${s.passed ?? 0}</div>
+          <div><strong>Failed</strong>: ${s.failed ?? 0}</div>
+          <div><strong>Skipped</strong>: ${s.skipped ?? 0}</div>
+          <div><strong>Runs</strong>: ${(res.final_report || []).length}</div>
+        </div>`;
+        el.innerHTML = summary + '<pre style="overflow:auto;max-height:400px;font-size:12px">' + JSON.stringify(res, null, 2) + '</pre>';
+      } catch (e) {
+        document.getElementById('report-result').innerHTML = '<p style="color:var(--fail)">' + e.message + '</p>';
+        document.getElementById('report-result').style.display = 'block';
+      }
+    });
+
+    document.getElementById('btn-generate-docx').addEventListener('click', async () => {
+      const start = document.getElementById('report-start').value;
+      const end = document.getElementById('report-end').value;
+      const startId = document.getElementById('report-start-id').value;
+      const endId = document.getElementById('report-end-id').value;
+      const params = new URLSearchParams({ download: 'true' });
+      if (start) params.set('startDate', start);
+      if (end) params.set('endDate', end);
+      if (startId) params.set('startId', startId);
+      if (endId) params.set('endId', endId);
+      window.location.href = API + '/api/generate-report?' + params;
+    });
+
+    // Test Cases
+    async function loadTestCases() {
+      const body = document.getElementById('testcases-body');
+      body.innerHTML = '<div class="loading">Loading…</div>';
+      try {
+        const list = await fetchJson('/api/testcases');
+        if (!list || list.length === 0) {
+          body.innerHTML = '<div class="empty">No uploads yet.</div>';
+          return;
+        }
+        body.innerHTML = `
+          <table>
+            <thead><tr><th>ID</th><th>Filename</th><th>Size</th><th>Cases</th><th>Uploaded</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${list.map(t => `
+                <tr>
+                  <td>${t.id}</td>
+                  <td>${t.filename}</td>
+                  <td>${(t.size || 0).toLocaleString()} bytes</td>
+                  <td>${t.case_count ?? 0}</td>
+                  <td>${t.uploaded_at || '—'}</td>
+                  <td>
+                    <a href="#" class="view-parsed" data-id="${t.id}" data-name="${(t.filename || '').replace(/"/g,'&quot;')}">View</a>
+                    <span style="margin:0 4px">|</span>
+                    <a href="/api/testcases/${t.id}?download=true" target="_blank">Download</a>
+                    <span style="margin:0 4px">|</span>
+                    <a href="#" class="delete-tc" data-id="${t.id}" style="color:var(--fail)">Delete</a>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        body.querySelectorAll('.view-parsed').forEach(a => {
+          a.addEventListener('click', async e => { e.preventDefault(); showParsedModal(parseInt(a.dataset.id), a.dataset.name); });
+        });
+        body.querySelectorAll('.delete-tc').forEach(a => {
+          a.addEventListener('click', async e => { e.preventDefault(); if (confirm('Delete this upload?')) { await fetch(API + '/api/testcases/' + a.dataset.id, { method: 'DELETE' }); loadTestCases(); } });
+        });
+      } catch (e) {
+        body.innerHTML = '<div class="empty">' + e.message + '</div>';
+      }
+    }
+
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('file-input');
+    uploadZone.querySelector('label').addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      const f = e.dataTransfer.files[0];
+      if (f && f.name.endsWith('.md')) doUpload(f);
+    });
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files[0];
+      if (f) doUpload(f);
+      fileInput.value = '';
+    });
+
+    async function doUpload(file) {
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        const res = await fetch(API + '/api/testcases/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        if (data.parsed_count !== undefined) alert('Uploaded. Parsed ' + data.parsed_count + ' test case(s).');
+        loadTestCases();
+      } catch (e) {
+        alert('Upload failed: ' + e.message);
+      }
+    }
+
+    async function showParsedModal(tid, name) {
+      document.getElementById('modal-parsed-title').textContent = 'Parsed: ' + (name || '');
+      document.getElementById('modal-parsed-body').innerHTML = '<div class="loading">Loading…</div>';
+      document.getElementById('modal-parsed').classList.add('active');
+      try {
+        const list = await fetchJson('/api/testcases/' + tid + '/parsed');
+        if (!list || list.length === 0) {
+          document.getElementById('modal-parsed-body').innerHTML = '<div class="empty">No parsed cases. Ensure file uses <code>## TC-XX: Title</code> format.</div>';
+          return;
+        }
+        document.getElementById('modal-parsed-body').innerHTML = list.map(c => `
+          <div class="case-detail">
+            <strong>${c.tc_id}</strong>: ${c.title || '—'}
+            ${c.module ? `<div class="meta">Module: ${c.module}</div>` : ''}
+          </div>
+        `).join('');
+        loadTestCases();  // Refresh table so case_count updates after backfill
+      } catch (e) {
+        document.getElementById('modal-parsed-body').innerHTML = '<div class="empty">' + (e.message || 'Failed to load') + '</div>';
+      }
+    }
+    document.getElementById('modal-parsed-close').addEventListener('click', () => document.getElementById('modal-parsed').classList.remove('active'));
+    document.getElementById('modal-parsed').addEventListener('click', e => { if (e.target.id === 'modal-parsed') e.target.classList.remove('active'); });
+
+    // Projects
+    async function loadProjectTestCases() {
+      const sel = document.getElementById('proj-testcases');
+      const editSel = document.getElementById('edit-proj-testcases');
+      try {
+        const list = await fetchJson('/api/testcases');
+        const opts = list.map(t => `<option value="${t.id}">${t.id}: ${t.filename}</option>`).join('');
+        sel.innerHTML = opts ? opts : '<option value="">No test cases uploaded</option>';
+        if (editSel) editSel.innerHTML = opts ? opts : '<option value="">No test cases</option>';
+      } catch (e) {
+        sel.innerHTML = '<option value="">Failed to load</option>';
+      }
+    }
+
+    async function loadProjects() {
+      const body = document.getElementById('projects-body');
+      body.innerHTML = '<div class="loading">Loading…</div>';
+      try {
+        const list = await fetchJson('/api/projects');
+        if (!list || list.length === 0) {
+          body.innerHTML = '<div class="empty">No projects yet. Create one above.</div>';
+          return;
+        }
+        body.innerHTML = `
+          <table>
+            <thead><tr><th>ID</th><th>Name</th><th>URL</th><th>Environment</th><th>Test Cases</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${list.map(p => `
+                <tr>
+                  <td>${p.id}</td>
+                  <td>${p.project_name}</td>
+                  <td><a href="${p.project_url}" target="_blank" rel="noopener">${p.project_url}</a></td>
+                  <td>${p.environment || '—'}</td>
+                  <td>${p.test_case_count ?? 0}</td>
+                  <td>
+                    <a href="#" class="edit-project" data-id="${p.id}">Edit</a>
+                    <span style="margin:0 4px">|</span>
+                    <a href="#" class="delete-project" data-id="${p.id}" style="color:var(--fail)">Delete</a>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        body.querySelectorAll('.edit-project').forEach(a => {
+          a.addEventListener('click', async e => { e.preventDefault(); openEditProject(parseInt(a.dataset.id)); });
+        });
+        body.querySelectorAll('.delete-project').forEach(a => {
+          a.addEventListener('click', async e => { e.preventDefault(); if (confirm('Delete this project?')) { await fetch(API + '/api/projects/' + a.dataset.id, { method: 'DELETE' }); loadProjects(); } });
+        });
+      } catch (e) {
+        body.innerHTML = '<div class="empty">' + e.message + '</div>';
+      }
+    }
+
+    document.getElementById('project-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const ids = Array.from(document.getElementById('proj-testcases').selectedOptions).map(o => parseInt(o.value)).filter(n => !isNaN(n));
+      const body = {
+        project_name: document.getElementById('proj-name').value.trim(),
+        project_url: document.getElementById('proj-url').value.trim(),
+        project_password: document.getElementById('proj-password').value.trim() || null,
+        project_story: document.getElementById('proj-story').value.trim() || null,
+        environment: document.getElementById('proj-environment').value.trim() || null,
+        test_case_ids: ids
+      };
+      try {
+        await fetch(API + '/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        document.getElementById('project-form').reset();
+        loadProjects();
+      } catch (err) {
+        alert('Failed: ' + err.message);
+      }
+    });
+
+    async function openEditProject(pid) {
+      const d = await fetchJson('/api/projects/' + pid);
+      document.getElementById('edit-proj-id').value = pid;
+      document.getElementById('edit-proj-name').value = d.project_name || '';
+      document.getElementById('edit-proj-url').value = d.project_url || '';
+      document.getElementById('edit-proj-password').value = d.project_password || '';
+      document.getElementById('edit-proj-environment').value = d.environment || '';
+      document.getElementById('edit-proj-story').value = d.project_story || '';
+      await loadProjectTestCases();
+      const editSel = document.getElementById('edit-proj-testcases');
+      Array.from(editSel.options).forEach(o => { o.selected = (d.assigned_test_case_ids || []).includes(parseInt(o.value)); });
+      document.getElementById('modal-project').classList.add('active');
+    }
+
+    document.getElementById('project-edit-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const pid = document.getElementById('edit-proj-id').value;
+      const ids = Array.from(document.getElementById('edit-proj-testcases').selectedOptions).map(o => parseInt(o.value)).filter(n => !isNaN(n));
+      const body = {
+        project_name: document.getElementById('edit-proj-name').value.trim(),
+        project_url: document.getElementById('edit-proj-url').value.trim(),
+        project_password: document.getElementById('edit-proj-password').value.trim() || null,
+        project_story: document.getElementById('edit-proj-story').value.trim() || null,
+        environment: document.getElementById('edit-proj-environment').value.trim() || null,
+        test_case_ids: ids
+      };
+      try {
+        await fetch(API + '/api/projects/' + pid, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        document.getElementById('modal-project').classList.remove('active');
+        loadProjects();
+      } catch (err) {
+        alert('Failed: ' + err.message);
+      }
+    });
+
+    document.getElementById('modal-project-close').addEventListener('click', () => document.getElementById('modal-project').classList.remove('active'));
+    document.getElementById('modal-project').addEventListener('click', e => { if (e.target.id === 'modal-project') e.target.classList.remove('active'); });
+
+    onHashChange();
+  </script>
+</body>
+</html>
