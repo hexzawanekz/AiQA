@@ -32,6 +32,7 @@ TEST_CASE_MODULES = {
     "visual_browse": "test_cases.visual_browse",
     "add_to_cart": "test_cases.add_to_cart",
     "checkout_flow": "test_cases.checkout_flow",
+    "eveandboy_maybelline": "test_cases.eveandboy_maybelline",
 }
 
 
