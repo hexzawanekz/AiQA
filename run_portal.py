@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Start the AiQA web portal (agentchattr fork with QA routes)."""
+"""Start the AiQA web portal (FastAPI app under portal/)."""
 
 import sys
 from pathlib import Path
@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "portal"))
 
-# Run from portal directory so agentchattr imports work
+# Run from portal directory so local imports resolve
 import os
 os.chdir(ROOT / "portal")
 
