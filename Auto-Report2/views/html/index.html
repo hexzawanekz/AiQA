@@ -100,7 +100,6 @@
     <a href="#webui-agent" class="nav-item" data-page="webui-agent">⚙️ Agent Settings</a>
     <a href="#webui-browser" class="nav-item" data-page="webui-browser">🌐 Browser Settings</a>
     <a href="#webui-run" class="nav-item" data-page="webui-run">🤖 Run Agent</a>
-    <a href="#webui-config" class="nav-item" data-page="webui-config">📁 Load & Save Config</a>
   </aside>
 
   <main class="main">
@@ -438,27 +437,6 @@
           <div id="webui-run-activity" style="margin-top:16px;max-height:400px;overflow-y:auto;font-family:monospace;font-size:13px">
             <div class="empty">Select a project and click Run. Activity will appear here in real time.</div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Load & Save Config (native) -->
-    <div id="view-webui-config" class="view">
-      <h1 class="page-title">📁 Load & Save Config</h1>
-      <p class="help-text">Save and load your Agent + Browser configuration as JSON.</p>
-      <div class="card">
-        <div class="card-body">
-          <div class="form-row">
-            <label>Load from JSON</label>
-            <div class="upload-zone" id="webui-config-upload-zone" style="padding:24px">
-              <p>Drag & drop a .json config file, or <label style="color:var(--accent);cursor:pointer" id="webui-config-browse">browse</label></p>
-              <input type="file" id="webui-config-file" accept=".json" style="display:none">
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="button" class="btn" id="webui-config-save-btn">💾 Save Config (Download)</button>
-          </div>
-          <div id="webui-config-status" class="meta" style="margin-top:12px"></div>
         </div>
       </div>
     </div>
@@ -910,60 +888,6 @@
         alert('Browser settings saved.');
       } catch (err) { alert('Save failed: ' + err.message); }
     });
-
-    document.getElementById('webui-config-save-btn')?.addEventListener('click', () => {
-      window.location.href = API + '/api/webui/config/save';
-      document.getElementById('webui-config-status').textContent = 'Config downloaded.';
-    });
-
-    document.getElementById('webui-config-browse')?.addEventListener('click', () => document.getElementById('webui-config-file').click());
-    document.getElementById('webui-config-file')?.addEventListener('change', async e => {
-      const f = e.target.files[0];
-      if (!f) return;
-      const fd = new FormData();
-      fd.append('file', f);
-      try {
-        const r = await fetch(API + '/api/webui/config/load', { method: 'POST', body: fd });
-        const data = await r.json();
-        if (!r.ok) {
-          document.getElementById('webui-config-status').textContent = 'Load failed: ' + (data.error || r.statusText);
-          return;
-        }
-        document.getElementById('webui-config-status').textContent = 'Config loaded.';
-        loadWebuiAgent();
-        loadWebuiBrowser();
-      } catch (err) {
-        document.getElementById('webui-config-status').textContent = 'Load failed: ' + err.message;
-      }
-      e.target.value = '';
-    });
-    const webuiConfigZone = document.getElementById('webui-config-upload-zone');
-    if (webuiConfigZone) {
-      webuiConfigZone.addEventListener('dragover', e => { e.preventDefault(); webuiConfigZone.classList.add('dragover'); });
-      webuiConfigZone.addEventListener('dragleave', () => webuiConfigZone.classList.remove('dragover'));
-      webuiConfigZone.addEventListener('drop', async e => {
-        e.preventDefault();
-        webuiConfigZone.classList.remove('dragover');
-        const f = e.dataTransfer.files[0];
-        if (f && f.name.endsWith('.json')) {
-          const fd = new FormData();
-          fd.append('file', f);
-          try {
-            const r = await fetch(API + '/api/webui/config/load', { method: 'POST', body: fd });
-            const data = await r.json();
-            if (!r.ok) {
-              document.getElementById('webui-config-status').textContent = 'Load failed: ' + (data.error || r.statusText);
-              return;
-            }
-            document.getElementById('webui-config-status').textContent = 'Config loaded.';
-            loadWebuiAgent();
-            loadWebuiBrowser();
-          } catch (err) {
-            document.getElementById('webui-config-status').textContent = 'Load failed: ' + err.message;
-          }
-        }
-      });
-    }
 
     document.querySelectorAll('.nav-item').forEach(n => {
       n.addEventListener('click', e => {
